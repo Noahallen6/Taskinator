@@ -1,10 +1,31 @@
+var taskIdCounter = 0;
+
+var pageContentEl = document.querySelector("#page-content");
 var formEl = document.querySelector("#task-form");
 var tasksToDoEl = document.querySelector("#tasks-to-do");
+var tasksInProgressEl = document.querySelector("#tasks-in-progress");
+var tasksCompletedEl = document.querySelector("#tasks-completed");
 
 var taskFormHandler = function () {
   event.preventDefault();
   var taskNameInput = document.querySelector("input[name='task-name']").value;
   var taskTypeInput = document.querySelector("select[name='task-type']").value;
+
+  var isEdit = formEl.hasAttribute("data-task-id");
+  
+  if (isEdit) {
+    var taskId = formEl.getAttribute("data-task-id");
+    completeEditTask(taskNameInput, taskTypeInput, taskId);
+  }
+
+  else{
+    var taskDataObj = {
+      name: taskNameInput,
+      type: taskTypeInput
+    };
+
+    createTaskEl(taskDataObj);
+  }
 
   var taskDataObj = {
       name: taskNameInput,
@@ -17,13 +38,27 @@ var taskFormHandler = function () {
   }
   formEl.reset()
 
-  createTaskEl(taskDataObj);
 };
+
+var completeEditTask = function(taskName, taskType, taskId) {
+  var taskSelected = document.querySelector(".task-item[data-task-id='" + taskId + "']");
+
+  taskSelected.querySelector("h3.task-name").textContnent = taskName;
+  taskSelected.querySelector("span.task-type").textContent = taskType;
+
+  alert("Task Updated!");
+
+  formEl.removeAttribute("data-task-id");
+  document.querySelector("#save-task").textContent = "Add Task";
+}
+
 
 var createTaskEl = function (taskDataObj) {
 
   var listItemEL = document.createElement("li");
   listItemEL.className = "task-item";
+  listItemEL.setAttribute("data-task-id", taskIdCounter);
+
   var taskInfoEl = document.createElement("div");
   taskInfoEl.className = "task-info";
 
@@ -36,7 +71,86 @@ var createTaskEl = function (taskDataObj) {
 
   listItemEL.appendChild(taskInfoEl);
 
+  var taskActionsEl = createTaskActions(taskIdCounter);
+  listItemEL.appendChild(taskActionsEl);
+
   tasksToDoEl.appendChild(listItemEL);
+
+  taskIdCounter++;
+};
+
+var createTaskActions = function(taskId) {
+    var actionContainerEl = document.createElement("div");
+    actionContainerEl.className = "task-actions";
+
+    var editButtonEl = document.createElement("button");
+    editButtonEl.textContent = "Edit";
+    editButtonEl.className = "btn edit-btn";
+    editButtonEl.setAttribute("data-task-id", taskId);
+
+    actionContainerEl.appendChild(editButtonEl);
+
+    var deleteButtonEl = document.createElement("button");
+    deleteButtonEl.textContent = "Delete";
+    deleteButtonEl.className = "btn delete-btn";
+    deleteButtonEl.setAttribute("data-task-id", taskId);
+
+    actionContainerEl.appendChild(deleteButtonEl);
+
+    var statusSelectEl = document.createElement("select");
+    statusSelectEl.className = "select-status";
+    statusSelectEl.setAttribute("name", "status-change");
+    statusSelectEl.setAttribute("data-task-id", taskId);
+
+    actionContainerEl.appendChild(statusSelectEl);
+
+    var statusChoices = ["To Do", "In Progress", "Completed"];
+
+    for (var i = 0; i < statusChoices.length; i++) {
+        var statusOptionEl = document.createElement("option");
+        statusOptionEl.textContent = statusChoices[i];
+        statusOptionEl.setAttribute("value", statusChoices[i]);
+
+        statusSelectEl.appendChild(statusOptionEl);
+    }
+
+    return actionContainerEl;
 };
 
 formEl.addEventListener("submit", taskFormHandler);
+
+var deleteTask = function(taskId) {
+  var taskSelected = document.querySelector(".task-item[data-task-id='" + taskId + "']");
+  taskSelected.remove();
+};
+
+var taskButtonHandler = function(event) {
+  console.log(event.target);
+
+  if (event.target.matches(".delete-btn")) {
+    var taskId = event.target.getAttribute("data-task-id");
+    deleteTask(taskId);
+  }
+};
+
+var taskStatusChangeHandler = function(event) {
+  var taskId = event.target.getAttribute("data-task-id");
+  
+  var statusValue = event.target.value.toLowerCase();
+
+  var taskSelected = document.querySelector(".task-item[data-task-id='" + taskId + "']");
+
+  if (statusValue === "to do") {
+    tasksToDoEl.appendChild(taskSelected);
+  }
+  else if (statusValue === "in progress") {
+    tasksInProgressEl.appendChild(taskSelected);
+  }
+  else if (statusValue === "completed") {
+    tasksCompletedEl.appendChild(taskSelected);
+  }
+};
+
+pageContentEl.addEventListener("click", taskButtonHandler);
+
+pageContentEl.addEventListener("change", taskStatusChangeHandler);
